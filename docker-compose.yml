@@ -1,0 +1,35 @@
+# Starts PostgreSQL database and front-end app for development, assuming the back-end service will be built and run separately by developer
+
+services:
+  app:
+    build: app
+    ports:
+      - "8080:8080"
+
+  postgresql:
+    build: 
+      context: ./db-migrations
+      dockerfile: Dockerfile
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "--dbname=readcommend", "--username=postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  service:
+    build:
+      context: ./service
+      dockerfile: Dockerfile 
+    # platform: linux/amd64
+    ports:
+      - "5001:5001"
+    # volumes:
+    #   - ./:/go/src/github.com/book-recommendations/
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      PORT: "5001"
+      DB_URL: postgres://postgres:password123@postgresql:5432/readcommend?sslmode=disable
